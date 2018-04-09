@@ -1,16 +1,20 @@
 package com.example.wyy.coolweather;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.wyy.coolweather.bean.Forecast;
 import com.example.wyy.coolweather.bean.Weather;
 import com.example.wyy.coolweather.util.HttpUtil;
@@ -48,11 +52,18 @@ public class WeatherActivity extends AppCompatActivity {
     TextView tvSport;
     @BindView(R.id.sv_weather)
     ScrollView svWeather;
+    @BindView(R.id.iv_bing_pic)
+    ImageView ivBingPic;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_weather);
+        if (Build.VERSION.SDK_INT >= 21) {
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         ButterKnife.bind(this);
         initData();
     }
@@ -60,6 +71,7 @@ public class WeatherActivity extends AppCompatActivity {
     private void initData() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = sp.getString("weather", null);
+        String imgUrl = sp.getString("bing_pic", null);
         if (weatherString != null) {
             Weather weather = Utility.handleWeatherResponse(weatherString);
             showWeatherInfo(weather);
@@ -67,6 +79,11 @@ public class WeatherActivity extends AppCompatActivity {
             String weatherId = getIntent().getStringExtra("weather_id");
             svWeather.setVisibility(View.INVISIBLE);
             requestWeatherId(weatherId);
+        }
+        if (imgUrl != null) {
+            Glide.with(this).load(imgUrl).into(ivBingPic);
+        } else {
+            requestImage();
         }
     }
 
@@ -128,6 +145,31 @@ public class WeatherActivity extends AppCompatActivity {
                         showWeatherInfo(weather);
                     } else {
                         Toast.makeText(WeatherActivity.this, "获取天气信息失败！", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+
+        requestImage();
+    }
+
+    private void requestImage() {
+        String url = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkhttpRequest(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.getStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseText = response.body().string();
+                runOnUiThread(() -> {
+                    if (responseText != null) {
+                        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                        editor.putString("bing_pic", responseText);
+                        editor.apply();
+                        Glide.with(WeatherActivity.this).load(responseText).into(ivBingPic);
                     }
                 });
             }
