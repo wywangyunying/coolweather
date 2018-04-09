@@ -1,6 +1,7 @@
 package com.example.wyy.coolweather;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -77,6 +78,12 @@ public class ChooseAreaFragment extends Fragment {
             } else if (currentLevel == LEVEL_CITY) {
                 selectedCity = cityList.get(i);
                 queryCounty();
+            } else if (currentLevel == LEVEL_COUNTY) {
+                String weatherId = countyList.get(i).getWeatherId();
+                Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                intent.putExtra("weather_id", weatherId);
+                startActivity(intent);
+                getActivity().finish();
             }
         });
         btnBack.setOnClickListener(view -> {
@@ -162,7 +169,7 @@ public class ChooseAreaFragment extends Fragment {
                 String responseText = response.body().string();
                 boolean request = false;
                 if ("province".equals(type)) {
-                    request = Utility.handleProviceResponse(responseText);
+                    request = Utility.handleProvinceResponse(responseText);
                 } else if ("city".equals(type)) {
                     request = Utility.handleCityResponse(responseText, selectedProvince.getId());
                 } else if ("county".equals(type)) {
